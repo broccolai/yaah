@@ -660,3 +660,47 @@ pub fn aoc_bench(arg: pm::TokenStream) -> pm::TokenStream {
 
     r.into()
 }
+
+#[proc_macro_attribute]
+pub fn aoc_test(args: pm::TokenStream, input: pm::TokenStream) -> pm::TokenStream {
+    let input_fn: ItemFn = syn::parse(input.clone()).unwrap_or_abort();
+    let fn_name = &input_fn.sig.ident;
+
+    let dpn: types::DayPartName = syn::parse(args).unwrap_or_abort();
+
+    let camelcased = syn::Ident::new(&dpn.to_camelcase(), pm2::Span::call_site());
+
+    let mut snakecased = dpn.to_snakecase();
+    snakecased.push_str("_tests");
+    let snakecased = syn::Ident::new(&snakecased, pm2::Span::call_site());
+
+    let sample_input_file = utils::fetch_sample(YEAR.get().unwrap(), dpn.day).unwrap();
+
+    let test_fn = quote! {
+    mod #snakecased {
+        use crate::{ Solver, Generator, #camelcased };
+        use super::*;
+
+        const SAMPLE: &'static str = include_str!(#sample_input_file);
+
+        #[test]
+        fn test() {
+            let output = #camelcased::generate(SAMPLE).unwrap();
+            let solved = match #camelcased::solve(&output) {
+                Ok(solved) => solved,
+                Err(_) => {
+                    assert!(false);
+                    return;
+                }
+            };
+
+            #input_fn
+
+            let expected = #fn_name();
+
+            assert_eq!(solved, expected);
+        }
+    }};
+
+    test_fn.into()
+}

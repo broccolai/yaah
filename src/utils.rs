@@ -1,4 +1,5 @@
 use std::io::Write;
+use anyhow::Error;
 
 pub fn fetch_input(year: usize, day: usize) -> Result<String, anyhow::Error> {
     let base = std::env::var("CARGO_MANIFEST_DIR")?;
@@ -36,5 +37,20 @@ pub fn fetch_input(year: usize, day: usize) -> Result<String, anyhow::Error> {
         std::fs::create_dir_all(input_file_path)?;
         std::fs::File::create(input_file.clone())?.write_all(input.as_bytes())?;
     }
+    Ok(input_file.to_string_lossy().to_string())
+}
+
+pub fn fetch_sample(year: usize, day: usize) -> Result<String, anyhow::Error> {
+    let base = std::env::var("CARGO_MANIFEST_DIR")?;
+    let input_file_path = std::path::Path::new(&base)
+        .join("sample")
+        .join(format!("{year}"));
+
+    let input_file = input_file_path.join(format!("day{day}.txt"));
+
+    if !input_file.exists() {
+        return Err(Error::msg("sample file not found"));
+    }
+
     Ok(input_file.to_string_lossy().to_string())
 }
